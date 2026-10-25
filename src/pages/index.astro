@@ -1,0 +1,17 @@
+---
+import Base from '../layouts/Base.astro';
+import MapView from '../components/map/MapView.astro';
+import { getDays, toIndexEntry } from '../lib/days.ts';
+import { YEAR_MIN } from '../schema.ts';
+import { useUI } from '../i18n';
+
+const ui = useUI();
+const days = await getDays();
+const index = days.map(toIndexEntry);
+const latest = days.at(-1)?.data.year ?? YEAR_MIN;
+---
+
+<Base bodyClass="map-page">
+  <h1 class="visually-hidden">{ui.siteName}</h1>
+  <MapView index={index} initialYear={latest} overlayOpen={false} camera="world" />
+</Base>

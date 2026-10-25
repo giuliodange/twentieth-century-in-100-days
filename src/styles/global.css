@@ -1,0 +1,81 @@
+@import './tokens.css';
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+[hidden] {
+  display: none !important;
+}
+
+body {
+  margin: 0;
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-family: var(--font-body);
+  font-size: var(--text-md);
+  line-height: var(--leading-body);
+}
+
+h1,
+h2,
+h3 {
+  font-family: var(--font-heading);
+  font-weight: var(--weight-strong);
+  line-height: var(--leading-tight);
+}
+
+a {
+  color: inherit;
+}
+
+img,
+svg {
+  max-width: 100%;
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+.visually-hidden {
+  position: absolute !important;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+.muted {
+  color: var(--color-text-muted);
+}
+
+.badge {
+  display: inline-block;
+  padding: 0 var(--space-2);
+  border: 1px solid currentColor;
+  border-radius: var(--radius-sm);
+  font-size: var(--text-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+/* Standard text pages (Go deeper, Stats, 404) */
+.page {
+  max-width: var(--wide-width);
+  margin: 0 auto;
+  padding: calc(var(--space-7) + var(--space-4)) var(--gutter) var(--space-7);
+}
+
+.page > header h1 {
+  font-size: var(--text-2xl);
+  margin: 0 0 var(--space-2);
+}

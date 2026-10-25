@@ -1,0 +1,29 @@
+---
+/**
+ * A day: a real static page at /YYYY/ (direct links, previews, search),
+ * shown as an overlay above the persistent map.
+ */
+import type { GetStaticPaths } from 'astro';
+import Base from '../layouts/Base.astro';
+import MapView from '../components/map/MapView.astro';
+import DayOverlay from '../components/day/DayOverlay.astro';
+import { getDays, toIndexEntry, neighbours, type Day } from '../lib/days.ts';
+
+export const getStaticPaths = (async () => {
+  const days = await getDays();
+  return days.map((day) => ({ params: { year: String(day.data.year) }, props: { day, days } }));
+}) satisfies GetStaticPaths;
+
+const { day, days } = Astro.props as { day: Day; days: Day[] };
+const { prev, next } = neighbours(days, day.data.year);
+---
+
+<Base
+  title={`${day.data.year}: ${day.data.title}`}
+  description={day.data.summary}
+  ogImage={`/og/${day.data.year}.png`}
+  bodyClass="map-page overlay-open"
+>
+  <MapView index={days.map(toIndexEntry)} initialYear={day.data.year} overlayOpen={true} />
+  <DayOverlay day={day} prev={prev} next={next} />
+</Base>

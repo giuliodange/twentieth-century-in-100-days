@@ -1,0 +1,81 @@
+---
+/** Vertical columns for ordered categories (decades, weekdays, months…). Scales from d3. */
+import { scaleLinear } from 'd3-scale';
+import type { Count } from '../../lib/stats.ts';
+
+interface Props {
+  data: Count[];
+  /** Short labels under the columns; defaults to the first 3 letters. */
+  short?: (c: Count) => string;
+}
+
+const { data, short = (c: Count) => c.label.slice(0, 3) } = Astro.props;
+const max = Math.max(1, ...data.map((d) => d.capacity ?? d.value));
+const y = scaleLinear().domain([0, max]).range([0, 100]);
+---
+
+<div class="columns" style={`--n:${data.length}`} role="list">
+  {
+    data.map((d) => (
+      <div class="col" role="listitem" aria-label={`${d.label}: ${d.value}${d.capacity ? ` of ${d.capacity}` : ''}`}>
+        <span class="value">{d.value || ''}</span>
+        <div class="area">
+          {d.capacity && <div class="capacity" style={`height:${y(d.capacity)}%`} />}
+          <div class:list={['bar', { zero: !d.value }]} style={`height:${y(d.value)}%`} />
+        </div>
+        <span class="label" aria-hidden="true">{short(d)}</span>
+      </div>
+    ))
+  }
+</div>
+
+<style>
+  .columns {
+    display: grid;
+    grid-template-columns: repeat(var(--n), minmax(0, 1fr));
+    gap: 3px;
+    align-items: end;
+  }
+  .col {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    text-align: center;
+    min-width: 0;
+  }
+  .area {
+    position: relative;
+    height: 7rem;
+  }
+  .capacity,
+  .bar {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    border-radius: 2px 2px 0 0;
+  }
+  .capacity {
+    background: var(--chart-track);
+  }
+  .bar {
+    background: var(--chart-bar);
+  }
+  .bar.zero {
+    height: 1px !important;
+    background: var(--color-border);
+  }
+  .value,
+  .label {
+    font-size: var(--text-xs);
+    color: var(--chart-label);
+    font-variant-numeric: tabular-nums;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: clip;
+  }
+  .value {
+    min-height: 1.2em;
+    color: var(--color-text);
+  }
+</style>

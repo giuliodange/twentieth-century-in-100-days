@@ -1,0 +1,214 @@
+---
+/**
+ * Every go_deeper item across the site, filterable by type, language,
+ * decade (of the day) and theme. All items are in the HTML; the filters
+ * only hide them, and their state lives in the query string (?type=book).
+ */
+import Base from '../layouts/Base.astro';
+import { getDays, dayHref, decadeOf, decadeLabel, DECADES } from '../lib/days.ts';
+import { GO_DEEPER_TYPES, THEMES, languageName } from '../schema.ts';
+import { useUI } from '../i18n';
+
+const ui = useUI();
+const days = await getDays();
+const typeOrder = (t: string) => GO_DEEPER_TYPES.indexOf(t as (typeof GO_DEEPER_TYPES)[number]);
+
+const items = days
+  .flatMap((d) => d.data.go_deeper.map((item) => ({ item, day: d })))
+  .sort((a, b) => a.day.data.year - b.day.data.year || typeOrder(a.item.type) - typeOrder(b.item.type));
+
+const present = <T,>(all: readonly T[], used: Set<T>) => all.filter((v) => used.has(v));
+const types = present(GO_DEEPER_TYPES, new Set(items.map((i) => i.item.type)));
+const languages = [...new Set(items.map((i) => i.item.language))].sort((a, b) => languageName(a).localeCompare(languageName(b)));
+const decades = present(DECADES, new Set(items.map((i) => decadeOf(i.day.data.year))));
+const themes = present(THEMES, new Set(items.flatMap((i) => i.day.data.themes)));
+
+const filters = [
+  { name: 'type', label: ui.goDeeperPage.filterType, options: types.map((t) => [t, ui.types[t].one]) },
+  { name: 'language', label: ui.goDeeperPage.filterLanguage, options: languages.map((l) => [l, languageName(l)]) },
+  { name: 'decade', label: ui.goDeeperPage.filterDecade, options: decades.map((d) => [String(d), decadeLabel(d)]) },
+  { name: 'theme', label: ui.goDeeperPage.filterTheme, options: themes.map((t) => [t, ui.themes[t]]) },
+];
+---
+
+<Base title={ui.goDeeperPage.title} description={ui.goDeeperPage.intro}>
+  <main class="page go-deeper-page">
+    <header>
+      <h1>{ui.goDeeperPage.title}</h1>
+      <p class="muted">{ui.goDeeperPage.intro}</p>
+    </header>
+
+    {
+      items.length === 0 ? (
+        <p class="empty">{ui.goDeeperPage.noneYet}</p>
+      ) : (
+        <>
+          <form class="filters" method="get" data-filters>
+            {filters.map((f) => (
+              <label>
+                <span>{f.label}</span>
+                <select name={f.name}>
+                  <option value="">{ui.goDeeperPage.all}</option>
+                  {f.options.map(([value, label]) => (
+                    <option value={value}>{label}</option>
+                  ))}
+                </select>
+              </label>
+            ))}
+            <button type="reset" class="reset">{ui.goDeeperPage.reset}</button>
+          </form>
+
+          <p class="count muted" aria-live="polite" data-count data-total={items.length}>
+            {ui.goDeeperPage.count(items.length, items.length)}
+          </p>
+
+          <ul class="items">
+            {items.map(({ item, day }) => (
+              <li
+                data-type={item.type}
+                data-language={item.language}
+                data-decade={decadeOf(day.data.year)}
+                data-theme={day.data.themes.join(' ')}
+              >
+                <p class="kind muted">
+                  {ui.types[item.type].one} · {languageName(item.language)}
+                </p>
+                <p class="title">
+                  {item.url ? (
+                    <a href={item.url} rel="noopener" target="_blank">{item.title}</a>
+                  ) : (
+                    item.title
+                  )}
+                </p>
+                {(item.author || item.year) && <p class="meta muted">{[item.author, item.year].filter(Boolean).join(' · ')}</p>}
+                <p class="note">{item.note}</p>
+                <p class="from">
+                  <span class="muted">{ui.goDeeperPage.from} </span>
+                  <a href={dayHref(day.data.year)}>
+                    {day.data.year}: {day.data.title}
+                  </a>
+                </p>
+              </li>
+            ))}
+          </ul>
+          <p class="no-match muted" hidden data-no-match>{ui.goDeeperPage.noMatch}</p>
+        </>
+      )
+    }
+  </main>
+</Base>
+
+<script>
+  import { useUI } from '../i18n';
+
+  const ui = useUI();
+
+  function init() {
+    const form = document.querySelector<HTMLFormElement>('[data-filters]');
+    if (!form || form.dataset.ready) return;
+    form.dataset.ready = 'true';
+    const selects = [...form.querySelectorAll('select')];
+    const items = [...document.querySelectorAll<HTMLLIElement>('.items > li')];
+    const count = document.querySelector<HTMLElement>('[data-count]')!;
+    const noMatch = document.querySelector<HTMLElement>('[data-no-match]')!;
+
+    const params = new URLSearchParams(location.search);
+    for (const s of selects) {
+      const v = params.get(s.name);
+      if (v && [...s.options].some((o) => o.value === v)) s.value = v;
+    }
+
+    const apply = () => {
+      const active = selects.filter((s) => s.value).map((s) => [s.name, s.value] as const);
+      let shown = 0;
+      for (const li of items) {
+        const ok = active.every(([name, value]) => (li.dataset[name] ?? '').split(' ').includes(value));
+        li.hidden = !ok;
+        if (ok) shown++;
+      }
+      count.textContent = ui.goDeeperPage.count(shown, items.length);
+      noMatch.hidden = shown > 0;
+      const qs = new URLSearchParams(active).toString();
+      history.replaceState(history.state, '', `${location.pathname}${qs ? `?${qs}` : ''}`);
+    };
+
+    form.addEventListener('change', apply);
+    form.addEventListener('submit', (e) => e.preventDefault());
+    form.addEventListener('reset', () => setTimeout(apply));
+    apply();
+  }
+
+  document.addEventListener('astro:page-load', init);
+</script>
+
+<style>
+  .filters {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-3) var(--space-4);
+    align-items: flex-end;
+    margin: var(--space-5) 0 var(--space-3);
+  }
+  .filters label {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
+    font-size: var(--text-sm);
+    flex: 1 1 10rem;
+  }
+  select,
+  .reset {
+    font: inherit;
+    padding: var(--space-2);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    background: var(--color-surface);
+    color: var(--color-text);
+  }
+  .reset {
+    cursor: pointer;
+  }
+  .count {
+    font-size: var(--text-sm);
+  }
+  .items {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: grid;
+    gap: var(--space-4);
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 18rem), 1fr));
+  }
+  .items li {
+    padding: var(--space-4);
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
+  }
+  .items p {
+    margin: 0;
+  }
+  .kind,
+  .meta,
+  .from {
+    font-size: var(--text-sm);
+  }
+  .kind {
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    font-size: var(--text-xs);
+  }
+  .title {
+    font-weight: var(--weight-strong);
+  }
+  .note {
+    font-size: var(--text-sm);
+  }
+  .from {
+    margin-top: auto !important;
+    padding-top: var(--space-2);
+  }
+</style>

@@ -1,0 +1,118 @@
+---
+import Base from '../layouts/Base.astro';
+import StatBlock from '../components/charts/StatBlock.astro';
+import Columns from '../components/charts/Columns.astro';
+import BarList from '../components/charts/BarList.astro';
+import CentreMap from '../components/charts/CentreMap.astro';
+import { getDays } from '../lib/days.ts';
+import { computeStats } from '../lib/stats.ts';
+import { useUI } from '../i18n';
+
+const ui = useUI();
+const days = await getDays();
+const s = computeStats(days, ui);
+const pct = (s.n / s.total) * 100;
+const items = (n: number) => ui.stats.items(n);
+---
+
+<Base title={ui.stats.title} description={ui.stats.intro}>
+  <main class="page">
+    <header>
+      <h1>{ui.stats.title}</h1>
+      <p class="muted">{ui.stats.intro}</p>
+    </header>
+
+    <section class="progress" aria-label={ui.stats.progress(s.n, s.total)}>
+      <p>
+        <strong>{ui.stats.progress(s.n, s.total)}</strong>
+        <span class="muted"> · {pct.toFixed(0)}%</span>
+      </p>
+      <div class="progress-track" role="progressbar" aria-valuemin="0" aria-valuemax={s.total} aria-valuenow={s.n}>
+        <div class="progress-bar" style={`width:${pct}%`}></div>
+      </div>
+    </section>
+
+    <div class="grid">
+      <StatBlock title={ui.stats.perDecade} n={s.n} wide>
+        <Columns data={s.decades} short={(c) => (c.key === '2000' ? '2000' : `’${c.key.slice(2)}`)} />
+      </StatBlock>
+
+      <StatBlock title={ui.stats.perWeekday} n={s.n}>
+        <Columns data={s.weekdays} />
+      </StatBlock>
+
+      <StatBlock title={ui.stats.perSeason} note={ui.stats.seasonNote} n={s.n}>
+        <Columns data={s.seasons} />
+      </StatBlock>
+
+      <StatBlock title={ui.stats.perMonth} n={s.n} wide>
+        <Columns data={s.months} />
+      </StatBlock>
+
+      <StatBlock title={ui.stats.perContinent} n={s.n}>
+        <BarList data={s.continents} />
+      </StatBlock>
+
+      <StatBlock title={ui.stats.perTheme} note={ui.stats.themeNote} n={s.n}>
+        <BarList data={s.themes} />
+      </StatBlock>
+
+      <StatBlock title={ui.stats.perCountryThen} n={s.n}>
+        <BarList data={s.countriesThen} />
+      </StatBlock>
+
+      <StatBlock title={ui.stats.perCountryToday} n={s.n}>
+        <BarList data={s.countriesToday} />
+      </StatBlock>
+
+      <StatBlock title={ui.stats.centre} note={ui.stats.centreNote} n={s.n} wide>
+        <CentreMap centres={s.centres} overall={s.overall} points={s.allPoints} />
+      </StatBlock>
+
+      <StatBlock title={ui.stats.people} n={s.n} empty={s.people.length === 0} emptyText={s.n ? ui.stats.peopleNone : ui.stats.noData}>
+        <BarList data={s.people} />
+      </StatBlock>
+
+      <StatBlock title={ui.stats.goDeeperByType} n={s.n} empty={s.itemsTotal === 0}>
+        <BarList data={s.goDeeperByType} />
+      </StatBlock>
+
+      <StatBlock title={ui.stats.goDeeperByLanguage} n={s.n} empty={s.itemsTotal === 0}>
+        <BarList data={s.goDeeperByLanguage} />
+      </StatBlock>
+
+      <StatBlock title={ui.stats.mostItems} n={s.n}>
+        <BarList data={s.mostItems} format={items} />
+      </StatBlock>
+
+      <StatBlock title={ui.stats.fewestItems} n={s.n} empty={s.fewestItems.length === 0}>
+        <BarList data={s.fewestItems} format={items} />
+      </StatBlock>
+    </div>
+  </main>
+</Base>
+
+<style>
+  .progress {
+    margin: var(--space-5) 0 var(--space-6);
+  }
+  .progress p {
+    margin: 0 0 var(--space-2);
+  }
+  .progress-track {
+    height: 0.75rem;
+    background: var(--chart-track);
+    border-radius: 999px;
+    overflow: hidden;
+  }
+  .progress-bar {
+    height: 100%;
+    min-width: 2px;
+    background: var(--chart-bar-strong);
+  }
+  .grid {
+    display: grid;
+    gap: var(--space-4);
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 22rem), 1fr));
+  }
+</style>

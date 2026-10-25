@@ -1,0 +1,65 @@
+---
+/** A titled stat with sparse-data and empty-data handling. */
+import { SPARSE_THRESHOLD } from '../../lib/stats.ts';
+import { TOTAL_YEARS } from '../../schema.ts';
+import { useUI } from '../../i18n';
+
+interface Props {
+  title: string;
+  note?: string;
+  /** Number of days this stat is based on. */
+  n: number;
+  /** Override the empty check, e.g. a stat about people when no one is listed. */
+  empty?: boolean;
+  emptyText?: string;
+  wide?: boolean;
+}
+
+const ui = useUI();
+const { title, note, n, empty = n === 0, emptyText = ui.stats.noData, wide = false } = Astro.props;
+---
+
+<section class:list={['stat', { wide }]}>
+  <h2>{title}</h2>
+  {note && <p class="note muted">{note}</p>}
+  {
+    empty ? (
+      <p class="empty muted">{emptyText}</p>
+    ) : (
+      <>
+        {n < SPARSE_THRESHOLD && <p class="sparse">{ui.stats.sparse(n, TOTAL_YEARS)}</p>}
+        <slot />
+      </>
+    )
+  }
+</section>
+
+<style>
+  .stat {
+    padding: var(--space-5);
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    min-width: 0;
+  }
+  .wide {
+    grid-column: 1 / -1;
+  }
+  h2 {
+    font-size: var(--text-md);
+    margin: 0 0 var(--space-1);
+  }
+  .note,
+  .sparse,
+  .empty {
+    font-size: var(--text-sm);
+    margin: 0 0 var(--space-3);
+  }
+  .sparse {
+    display: inline-block;
+    padding: 0 var(--space-2);
+    border-radius: var(--radius-sm);
+    background: var(--chart-track);
+    color: var(--color-text-muted);
+  }
+</style>

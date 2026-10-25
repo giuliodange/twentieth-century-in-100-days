@@ -1,0 +1,100 @@
+---
+/** The century's centre of gravity: one point per decade, joined in time order. */
+import { line, curveCatmullRom } from 'd3-shape';
+import { WORLD_W, WORLD_H, land110Path, spherePath } from '../../lib/geo.ts';
+import type { Centre } from '../../lib/stats.ts';
+import { useUI } from '../../i18n';
+
+interface Props {
+  centres: Centre[];
+  overall: [number, number] | null;
+  points: [number, number][];
+}
+
+const ui = useUI();
+const { centres, overall, points } = Astro.props;
+const defined = centres.filter((c) => c.x !== null) as (Centre & { x: number; y: number })[];
+const path = defined.length > 1 ? line<{ x: number; y: number }>().x((d) => d.x).y((d) => d.y).curve(curveCatmullRom)(defined) : null;
+---
+
+<figure>
+  <svg viewBox={`0 0 ${WORLD_W} ${WORLD_H}`} role="img" aria-label={ui.stats.centre}>
+    <path class="sphere" d={spherePath()} />
+    <path class="land" d={land110Path()} />
+    {points.map(([x, y]) => <circle class="day" cx={x} cy={y} r="3" />)}
+    {path && <path class="trail" d={path} />}
+    {
+      defined.map((c) => (
+        <g class="centre">
+          <circle cx={c.x} cy={c.y} r="7" />
+          <text x={c.x + 11} y={c.y + 6}>{c.label}</text>
+        </g>
+      ))
+    }
+    {overall && <circle class="overall" cx={overall[0]} cy={overall[1]} r="10" />}
+  </svg>
+  <figcaption>
+    <ul>
+      {
+        centres.map((c) => (
+          <li>
+            <strong>{c.label}</strong> <span class="muted">({ui.stats.days(c.days)})</span>
+            {c.x === null && <span class="muted"> {ui.stats.centreUndefined}</span>}
+          </li>
+        ))
+      }
+    </ul>
+  </figcaption>
+</figure>
+
+<style>
+  figure {
+    margin: 0;
+  }
+  svg {
+    display: block;
+    width: 100%;
+    height: auto;
+  }
+  .sphere {
+    fill: var(--map-sphere);
+  }
+  .land {
+    fill: var(--map-land);
+  }
+  .day {
+    fill: var(--map-point-past);
+    opacity: var(--map-point-past-opacity);
+  }
+  .trail {
+    fill: none;
+    stroke: var(--map-centroid);
+    stroke-width: 2;
+    stroke-dasharray: 4 4;
+  }
+  .centre circle {
+    fill: var(--map-centroid);
+  }
+  .centre text {
+    font-size: 22px;
+    font-weight: 600;
+    fill: var(--color-text);
+    paint-order: stroke;
+    stroke: var(--map-sphere);
+    stroke-width: 4px;
+  }
+  .overall {
+    fill: none;
+    stroke: var(--color-text);
+    stroke-width: 3;
+  }
+  figcaption ul {
+    list-style: none;
+    padding: 0;
+    margin: var(--space-3) 0 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-1) var(--space-4);
+    font-size: var(--text-sm);
+  }
+</style>

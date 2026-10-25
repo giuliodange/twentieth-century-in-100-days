@@ -1,0 +1,70 @@
+---
+/** go_deeper items of one day, grouped by type in a fixed order. */
+import { GO_DEEPER_TYPES, languageName, type GoDeeperItem } from '../../schema.ts';
+import { useUI } from '../../i18n';
+
+interface Props {
+  items: GoDeeperItem[];
+}
+
+const ui = useUI();
+const { items } = Astro.props;
+const groups = GO_DEEPER_TYPES.map((type) => ({ type, items: items.filter((i) => i.type === type) })).filter((g) => g.items.length);
+---
+
+<div class="groups">
+  {
+    groups.map((g) => (
+      <section class="group" data-type={g.type}>
+        <h3>{g.items.length === 1 ? ui.types[g.type].one : ui.types[g.type].many}</h3>
+        <ul>
+          {g.items.map((i) => (
+            <li>
+              <p class="title">
+                {i.url ? (
+                  <a href={i.url} rel="noopener" target="_blank">{i.title}</a>
+                ) : (
+                  <span>{i.title}</span>
+                )}
+              </p>
+              <p class="meta muted">{[i.author, i.year, languageName(i.language)].filter(Boolean).join(' · ')}</p>
+              <p class="note">{i.note}</p>
+            </li>
+          ))}
+        </ul>
+      </section>
+    ))
+  }
+</div>
+
+<style>
+  .group + .group {
+    margin-top: var(--space-5);
+  }
+  h3 {
+    font-size: var(--text-sm);
+    color: var(--color-text-muted);
+    font-weight: var(--weight-regular);
+    margin: 0 0 var(--space-2);
+  }
+  ul {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: var(--space-4);
+  }
+  p {
+    margin: 0;
+  }
+  .title {
+    font-weight: var(--weight-strong);
+  }
+  .meta {
+    font-size: var(--text-sm);
+  }
+  .note {
+    font-size: var(--text-sm);
+    margin-top: var(--space-1);
+  }
+</style>

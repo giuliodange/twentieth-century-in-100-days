@@ -1,0 +1,16 @@
+---
+import Base from '../layouts/Base.astro';
+import { useUI } from '../i18n';
+
+const ui = useUI();
+---
+
+<Base title={ui.notFound.title}>
+  <main class="page">
+    <header>
+      <h1>{ui.notFound.title}</h1>
+      <p class="muted">{ui.notFound.body}</p>
+    </header>
+    <p><a href="/">{ui.notFound.back}</a></p>
+  </main>
+</Base>

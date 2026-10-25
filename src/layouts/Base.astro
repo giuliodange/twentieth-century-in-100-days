@@ -1,0 +1,98 @@
+---
+/**
+ * Base HTML shell for every page: <head>, social previews, site navigation
+ * and the client router that keeps the map alive between pages.
+ */
+import { ClientRouter } from 'astro:transitions';
+import '@fontsource/inter/400.css';
+import '@fontsource/inter/600.css';
+import '../styles/global.css';
+import { useUI } from '../i18n';
+
+interface Props {
+  title?: string;
+  description?: string;
+  /** Absolute or root-relative path to the Open Graph image. */
+  ogImage?: string;
+  /** Adds a class to <body>, e.g. "map-page". */
+  bodyClass?: string;
+}
+
+const ui = useUI();
+const { title, description = ui.siteDescription, ogImage = '/og/home.png', bodyClass } = Astro.props;
+const fullTitle = title ? `${title} · ${ui.siteName}` : ui.siteName;
+const canonical = new URL(Astro.url.pathname, Astro.site);
+const ogImageUrl = new URL(ogImage, Astro.site);
+const path = Astro.url.pathname;
+const current = (href: string) => (href === '/' ? !/^\/(go-deeper|stats)/.test(path) : path.startsWith(href));
+---
+
+<!doctype html>
+<html lang="en" transition:animate="none">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>{fullTitle}</title>
+    <meta name="description" content={description} />
+    <link rel="canonical" href={canonical} />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="sitemap" href="/sitemap.xml" />
+
+    <meta property="og:site_name" content={ui.siteName} />
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content={title ?? ui.siteName} />
+    <meta property="og:description" content={description} />
+    <meta property="og:url" content={canonical} />
+    <meta property="og:image" content={ogImageUrl} />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta name="twitter:card" content="summary_large_image" />
+
+    <ClientRouter />
+  </head>
+  <body class={bodyClass}>
+    <nav class="site-nav" aria-label="Site">
+      <a href="/" class="site-name" aria-current={current('/') ? 'page' : undefined}>{ui.siteName}</a>
+      <a href="/go-deeper/" aria-current={current('/go-deeper') ? 'page' : undefined}>{ui.nav.goDeeper}</a>
+      <a href="/stats/" aria-current={current('/stats') ? 'page' : undefined}>{ui.nav.stats}</a>
+    </nav>
+    <slot />
+  </body>
+</html>
+
+<style>
+  .site-nav {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 30;
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2) var(--space-4);
+    align-items: baseline;
+    padding: var(--space-3) var(--gutter);
+    padding-top: max(var(--space-3), env(safe-area-inset-top));
+    font-size: var(--text-sm);
+    pointer-events: none;
+  }
+  .site-nav a {
+    pointer-events: auto;
+    text-decoration: none;
+    color: var(--color-text-muted);
+  }
+  .site-nav a[aria-current='page'],
+  .site-nav a:hover {
+    color: var(--color-text);
+  }
+  .site-name {
+    font-weight: var(--weight-strong);
+    margin-right: auto;
+  }
+  .site-nav .site-name {
+    color: var(--color-text);
+  }
+  body:not(.map-page) .site-nav {
+    position: absolute;
+  }
+</style>
