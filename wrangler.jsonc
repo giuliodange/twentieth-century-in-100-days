@@ -1,0 +1,11 @@
+// Cloudflare Workers config: serve the static site built into dist/.
+// No server code runs; Cloudflare only hosts the files.
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "twentieth-century-in-100-days",
+  "compatibility_date": "2026-10-01",
+  "assets": {
+    "directory": "./dist",
+    "not_found_handling": "404-page"
+  }
+}
